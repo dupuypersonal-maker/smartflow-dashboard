@@ -8,19 +8,19 @@ module.exports = async function handler(req, res) {
   // Look up token in Airtable
   let record = null;
   try {
-    const formula = encodeURIComponent(`{Email}!=""&{Token}="${token}"`);
-    const atRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/Tokens?filterByFormula=${formula}&maxRecords=1`, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
-    });
-    if (!atRes.ok) return res.status(500).send(errorPage('Error', 'No se pudo verificar el token.'));
-    const data = await atRes.json();
-    if (!data.records || data.records.length === 0) {
-      return res.status(400).send(errorPage('Link inválido', 'Este link de acceso no es válido. Vuelve al dashboard y solicita uno nuevo.'));
-    }
-    record = data.records[0];
-  } catch (e) {
-    return res.status(500).send(errorPage('Error', 'Error de conexión: ' + e.message));
+  const atRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/Tokens?filterByFormula=${encodeURIComponent('{Used}=FALSE()')}&maxRecords=50`, {
+    headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
+  });
+  if (!atRes.ok) return res.status(500).send(errorPage('Error', 'No se pudo verificar el token.'));
+  const data = await atRes.json();
+  record = (data.records || []).find(r => r.fields.Token === token);
+  if (!record) {
+    return res.status(400).send(errorPage('Link inválido', 'Este link no es válido o ya fue usado.'));
   }
+} catch (e) {
+  return res.status(500).send(errorPage('Error', 'Error: ' + e.message));
+}
+
 
   const fields = record.fields;
 
