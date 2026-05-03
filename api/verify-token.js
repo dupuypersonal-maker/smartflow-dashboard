@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
   // Look up token in Airtable
   let record = null;
   try {
-  const atRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/Tokens?filterByFormula=${encodeURIComponent('{Used}=FALSE()')}&maxRecords=50`, {
+  const atRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/Tokens?maxRecords=100`, {
     headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
   });
   if (!atRes.ok) return res.status(500).send(errorPage('Error', 'No se pudo verificar el token.'));
