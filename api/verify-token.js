@@ -13,6 +13,7 @@ module.exports = async function handler(req, res) {
   });
   if (!atRes.ok) return res.status(500).send(errorPage('Error', 'No se pudo verificar el token.'));
   const data = await atRes.json();
+    console.log('Airtable records:', JSON.stringify(data));
   record = (data.records || []).find(r => r.fields.Token === token);
   if (!record) {
     return res.status(400).send(errorPage('Link inválido', 'Este link no es válido o ya fue usado.'));
