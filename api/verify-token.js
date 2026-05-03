@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
   // Look up token in Airtable
   let record = null;
   try {
-    const formula = encodeURIComponent(`{Token}="${token}"`);
+    const formula = encodeURIComponent(`{Email}!=""&{Token}="${token}"`);
     const atRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/Tokens?filterByFormula=${formula}&maxRecords=1`, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
     });
