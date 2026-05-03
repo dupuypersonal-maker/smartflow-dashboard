@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Inteligente — Smartflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --ink: #0e0e0e;
+  --paper: #f5f2ec;
+  --blue: #2563eb;
+  --blue-light: #eff4ff;
+  --blue-mid: #93aff5;
+  --muted: #888076;
+  --border: rgba(14,14,14,0.12);
+  --radius: 16px;
+  --green: #16a34a;
+  --green-light: #f0fdf4;
+  --red: #dc2626;
+  --amber: #d97706;
+
+  /* SaaS Dashboard vars */
+  --app-bg: #f4f4f5;
+  --app-surface: #ffffff;
+  --app-border: #e4e4e7;
+  --app-text: #18181b;
+  --app-muted: #71717a;
+  --app-radius: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+
+/* ── MARKETING PAGES (hero, upload) use paper theme ── */
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 3rem;
+  background: rgba(245,242,236,0.85); backdrop-filter: blur(12px);
+  border-bottom: 0.5px solid var(--border);
+  transition: background .3s, border-color .3s;
+}
+nav.app-mode {
+  background: rgba(255,255,255,0.95);
+  border-bottom: 1px solid var(--app-border);
+}
+.logo { font-family: 'Instrument Serif', serif; font-size: 22px; letter-spacing: -.02em; color: var(--ink); display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); display: inline-block; }
+.nav-right { display: flex; align-items: center; gap: 1rem; }
+.nav-pill { font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--blue); background: var(--blue-light); padding: 5px 14px; border-radius: 50px; border: 0.5px solid rgba(37,99,235,.2); }
+.nav-user { display: none; align-items: center; gap: 10px; font-size: 14px; color: var(--app-text); }
+.nav-user.show { display: flex; }
+.nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
+.nav-user-info { text-align: right; }
+.nav-user-name { font-weight: 500; font-size: 13px; line-height: 1.2; }
+.nav-user-role { font-size: 11px; color: var(--app-muted); }
+
+/* HERO */
+.hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 8rem 2rem 5rem; position: relative; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; z-index: 0; background: radial-gradient(ellipse 55% 50% at 65% 35%, rgba(37,99,235,0.09) 0%, transparent 70%), radial-gradient(ellipse 40% 55% at 15% 75%, rgba(37,99,235,0.05) 0%, transparent 60%); }
+.hero-grid { position: absolute; inset: 0; z-index: 0; opacity: .4; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 60px 60px; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%); }
+.hero-content { position: relative; z-index: 1; max-width: 680px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--blue); font-weight: 500; margin-bottom: 1.75rem; opacity: 0; animation: fadeUp .6s .1s ease forwards; }
+.eyebrow::before, .eyebrow::after { content: ''; width: 24px; height: 1px; background: var(--blue); }
+h1 { font-family: 'Instrument Serif', serif; font-size: clamp(44px, 6.5vw, 78px); line-height: 1.06; letter-spacing: -.03em; color: var(--ink); margin-bottom: 1.5rem; font-weight: 400; opacity: 0; animation: fadeUp .7s .25s ease forwards; }
+h1 em { font-style: italic; color: var(--blue); }
+.hero-sub { font-size: 18px; color: var(--muted); max-width: 500px; margin: 0 auto 2.5rem; line-height: 1.7; font-weight: 300; opacity: 0; animation: fadeUp .7s .4s ease forwards; }
+.hero-arrow { opacity: 0; animation: fadeUp .7s .55s ease forwards; display: inline-flex; flex-direction: column; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; text-decoration: none; transition: color .2s; }
+.hero-arrow:hover { color: var(--blue); }
+.arrow-circle { width: 40px; height: 40px; border-radius: 50%; border: 0.5px solid var(--border); display: flex; align-items: center; justify-content: center; transition: border-color .2s; animation: bounce 2s 1.5s ease-in-out infinite; }
+.hero-arrow:hover .arrow-circle { border-color: var(--blue); }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+.hero-stats { display: flex; justify-content: center; gap: 3.5rem; margin-top: 5rem; padding-top: 2.5rem; border-top: 0.5px solid var(--border); opacity: 0; animation: fadeUp .7s .7s ease forwards; }
+.stat-num { font-family: 'Instrument Serif', serif; font-size: 38px; letter-spacing: -.03em; color: var(--ink); line-height: 1; }
+.stat-lbl { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; }
+
+/* UPLOAD SECTION */
+.section-wrap { max-width: 760px; margin: 0 auto; padding: 7rem 2rem; }
+.section-tag { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--blue); font-weight: 500; margin-bottom: 2.5rem; display: flex; align-items: center; gap: 10px; }
+.section-tag::after { content: ''; flex: 1; height: 0.5px; background: var(--border); max-width: 80px; }
+
+.ind-label { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: .75rem; }
+.ind-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 2rem; }
+.ind-pill { padding: 8px 18px; border-radius: 50px; font-size: 13px; cursor: pointer; border: 0.5px solid var(--border); background: transparent; color: var(--muted); transition: all .15s; user-select: none; font-family: 'DM Sans', sans-serif; }
+.ind-pill:hover { border-color: rgba(37,99,235,.3); color: var(--ink); }
+.ind-pill.active { background: var(--blue-light); border-color: rgba(37,99,235,.35); color: var(--blue); font-weight: 500; }
+
+.upload-zone { border: 1.5px dashed rgba(37,99,235,.3); border-radius: var(--radius); background: #fff; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 1.5rem; }
+.upload-zone:hover, .upload-zone.drag { border-color: var(--blue); background: var(--blue-light); }
+.upload-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--blue-light); border: 0.5px solid rgba(37,99,235,.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+.upload-title { font-size: 16px; font-weight: 500; color: var(--ink); margin-bottom: .4rem; }
+.upload-sub { font-size: 13px; color: var(--muted); font-weight: 300; }
+#file-input { display: none; }
+.file-selected { display: none; align-items: center; gap: 12px; background: var(--green-light); border: 0.5px solid rgba(22,163,74,.2); border-radius: 10px; padding: .9rem 1.25rem; margin-bottom: 1.5rem; }
+.file-selected.show { display: flex; }
+.file-name { font-size: 14px; font-weight: 500; color: var(--ink); }
+.file-size { font-size: 12px; color: var(--muted); font-weight: 300; }
+.file-remove { margin-left: auto; font-size: 12px; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+.file-remove:hover { background: rgba(14,14,14,.07); }
+.q-divider { border: none; border-top: 0.5px solid var(--border); margin: 2rem 0; }
+.process-btn { width: 100%; padding: .95rem; background: var(--ink); color: var(--paper); border: none; border-radius: 50px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .2s, transform .15s; }
+.process-btn:hover { background: var(--blue); transform: translateY(-1px); }
+.process-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* PROCESSING */
+.proc-wrap { display: none; border-top: 0.5px solid var(--border); }
+.proc-wrap.show { display: block; }
+.proc-steps { display: none; text-align: center; padding: 4rem 2rem; }
+.proc-steps.show { display: block; }
+.steps-list { display: flex; flex-direction: column; gap: .75rem; max-width: 320px; margin: 0 auto; }
+.p-step { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); font-weight: 300; opacity: .4; transition: opacity .3s; }
+.p-step.active { opacity: 1; color: var(--ink); }
+.p-step.done { opacity: .6; }
+.p-step-icon { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.p-step.active .p-step-icon { border-color: var(--blue); }
+.p-step.done .p-step-icon { border-color: var(--green); background: var(--green-light); }
+.step-spinner { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid rgba(37,99,235,.3); border-top-color: var(--blue); animation: spin .6s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.step-check { color: var(--green); font-size: 12px; }
+.step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+
+/* EMAIL GATE */
+.email-gate-wrap { display: none; border-top: 0.5px solid var(--border); }
+.email-gate-wrap.show { display: block; }
+.email-gate { background: var(--ink); border-radius: var(--radius); padding: 3rem 2.5rem; text-align: center; position: relative; overflow: hidden; }
+.email-gate-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(37,99,235,.25) 0%, transparent 70%); }
+.email-gate-tag { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; background: var(--blue); color: #fff; padding: 4px 12px; border-radius: 50px; display: inline-block; margin-bottom: 1.25rem; font-weight: 500; position: relative; }
+.email-gate h3 { font-family: 'Instrument Serif', serif; font-size: clamp(22px, 3.5vw, 34px); color: var(--paper); margin-bottom: .6rem; font-weight: 400; letter-spacing: -.02em; position: relative; }
+.email-gate h3 em { font-style: italic; color: var(--blue-mid); }
+.email-gate p { font-size: 15px; color: rgba(245,242,236,.5); margin-bottom: 2rem; font-weight: 300; line-height: 1.65; max-width: 420px; margin-left: auto; margin-right: auto; position: relative; }
+.email-form { display: flex; gap: .75rem; max-width: 420px; margin: 0 auto; position: relative; }
+.email-input { flex: 1; padding: .85rem 1.25rem; background: rgba(245,242,236,.08); border: 0.5px solid rgba(245,242,236,.15); border-radius: 50px; font-size: 14px; color: var(--paper); font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .2s; }
+.email-input::placeholder { color: rgba(245,242,236,.35); }
+.email-input:focus { border-color: var(--blue); }
+.email-submit { padding: .85rem 1.5rem; background: var(--blue); color: #fff; border: none; border-radius: 50px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+.email-submit:hover { opacity: .88; }
+.email-note { font-size: 12px; color: rgba(245,242,236,.25); margin-top: .75rem; position: relative; }
+
+/* ── APP DASHBOARD ── */
+.app-shell { display: none; background: var(--app-bg); min-height: 100vh; }
+.app-shell.show { display: block; }
+
+.app-topbar {
+  background: var(--app-surface); border-bottom: 1px solid var(--app-border);
+  padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.app-topbar-left { display: flex; align-items: center; gap: 1rem; }
+.app-logo-mark { width: 32px; height: 32px; border-radius: 8px; background: var(--blue); display: flex; align-items: center; justify-content: center; }
+.app-logo-mark svg { width: 16px; height: 16px; }
+.app-brand { font-family: 'Instrument Serif', serif; font-size: 17px; letter-spacing: -.01em; color: var(--app-text); }
+.app-brand-sub { font-size: 12px; color: var(--app-muted); margin-top: -2px; }
+.app-topbar-right { display: flex; align-items: center; gap: 1rem; }
+.app-notif { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--app-border); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+.app-notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; border: 2px solid #fff; position: absolute; top: 4px; right: 4px; }
+.app-user-pill { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border: 1px solid var(--app-border); border-radius: 50px; cursor: pointer; }
+.app-user-name { font-size: 13px; font-weight: 500; color: var(--app-text); }
+.app-user-role { font-size: 11px; color: var(--app-muted); }
+.app-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+
+.app-body { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+/* PAGE HEADER */
+.page-header { margin-bottom: 1.75rem; }
+.page-title { font-size: 22px; font-weight: 600; color: var(--app-text); letter-spacing: -.02em; margin-bottom: .25rem; }
+.page-sub { font-size: 14px; color: var(--app-muted); font-weight: 300; }
+.page-header-row { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.status-pills { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.status-pill { font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: 50px; border: 1px solid; }
+.status-pill.total { background: #f4f4f5; color: #3f3f46; border-color: #e4e4e7; }
+.status-pill.green { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.status-pill.amber { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.status-pill.blue { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.status-pill.red { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.status-pill.gray { background: #f9fafb; color: #6b7280; border-color: #e5e7eb; }
+
+/* KPI CARDS */
+.kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.75rem; }
+.kpi-card { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius); padding: 1.25rem 1.5rem; }
+.kpi-card-label { font-size: 12px; font-weight: 500; color: var(--app-muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+.kpi-card-value { font-size: 28px; font-weight: 600; color: var(--app-text); letter-spacing: -.02em; line-height: 1; margin-bottom: .35rem; }
+.kpi-card-sub { font-size: 12px; color: var(--app-muted); }
+
+/* SEARCH & FILTERS */
+.toolbar { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.search-box { flex: 1; min-width: 200px; display: flex; align-items: center; gap: 8px; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 8px; padding: .55rem 1rem; }
+.search-box input { border: none; outline: none; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--app-text); background: transparent; width: 100%; }
+.search-box input::placeholder { color: var(--app-muted); }
+.filter-btn { display: flex; align-items: center; gap: 6px; padding: .55rem 1rem; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 8px; font-size: 13px; color: var(--app-text); cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif; }
+.filter-btn:hover { background: #f4f4f5; }
+.results-count { font-size: 13px; color: var(--app-muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
+
+/* DATA CARDS GRID */
+.cards-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+.data-card { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius); overflow: hidden; cursor: pointer; transition: box-shadow .15s, transform .15s; }
+.data-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-2px); }
+.data-card-top { height: 4px; }
+.data-card-top.green { background: #16a34a; }
+.data-card-top.amber { background: #d97706; }
+.data-card-top.blue { background: #2563eb; }
+.data-card-top.red { background: #dc2626; }
+.data-card-top.gray { background: #9ca3af; }
+.data-card-top.purple { background: #7c3aed; }
+.data-card-body { padding: 1rem 1.25rem 1.25rem; }
+.data-card-id { font-size: 11px; color: var(--app-muted); font-weight: 500; letter-spacing: .06em; margin-bottom: .35rem; display: flex; justify-content: space-between; align-items: center; }
+.data-card-name { font-size: 14px; font-weight: 600; color: var(--app-text); line-height: 1.3; margin-bottom: .75rem; }
+.data-card-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: .75rem; }
+.data-card-meta-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--app-muted); }
+.data-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: .75rem; border-top: 1px solid var(--app-border); }
+.data-card-footer-left { font-size: 12px; color: var(--app-muted); }
+.data-card-footer-right { font-size: 13px; font-weight: 600; color: var(--blue); }
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 50px; font-weight: 500; border: 1px solid; }
+.badge.green { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.badge.red { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.badge.amber { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.badge.blue { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.badge.gray { background: #f9fafb; color: #6b7280; border-color: #e5e7eb; }
+.badge.purple { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
+
+/* CHARTS ROW */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.75rem; }
+.chart-card { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius); padding: 1.25rem; }
+.chart-card.wide { grid-column: span 2; }
+.chart-card-title { font-size: 13px; font-weight: 600; color: var(--app-text); margin-bottom: .25rem; }
+.chart-card-sub { font-size: 12px; color: var(--app-muted); margin-bottom: 1.25rem; }
+canvas { max-height: 200px; }
+
+/* INTELLIGENCE PANEL */
+.intel-panel { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius); overflow: hidden; margin-bottom: 1.75rem; }
+.intel-panel-header { display: flex; align-items: center; gap: 12px; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--app-border); background: #fafafa; }
+.intel-panel-badge { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; background: var(--blue); color: #fff; padding: 3px 10px; border-radius: 50px; font-weight: 600; }
+.intel-panel-title { font-size: 14px; font-weight: 600; color: var(--app-text); }
+.intel-panel-body { padding: 1.5rem; }
+.intel-summary { font-size: 14px; color: var(--app-text); line-height: 1.75; font-weight: 400; margin-bottom: 1.5rem; }
+.intel-summary strong { color: var(--blue); font-weight: 600; }
+.cursor { display: inline-block; width: 2px; height: 1em; background: var(--blue); animation: blink .7s ease infinite; vertical-align: text-bottom; margin-left: 1px; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.insights-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; }
+.insight-tile { background: #fafafa; border: 1px solid var(--app-border); border-radius: 8px; padding: 1rem; }
+.insight-tile-icon { font-size: 20px; margin-bottom: .5rem; }
+.insight-tile-title { font-size: 12px; font-weight: 600; color: var(--app-text); margin-bottom: .35rem; line-height: 1.3; }
+.insight-tile-desc { font-size: 11px; color: var(--app-muted); line-height: 1.5; }
+
+/* CTA BANNER */
+.cta-banner { background: var(--ink); border-radius: var(--app-radius); padding: 2.5rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 2rem; position: relative; overflow: hidden; margin-bottom: 2rem; }
+.cta-banner-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 50% 100% at 80% 50%, rgba(37,99,235,.3) 0%, transparent 70%); }
+.cta-banner-text { position: relative; }
+.cta-banner-title { font-family: 'Instrument Serif', serif; font-size: 22px; color: #fff; margin-bottom: .35rem; letter-spacing: -.02em; }
+.cta-banner-title em { font-style: italic; color: var(--blue-mid); }
+.cta-banner-sub { font-size: 14px; color: rgba(255,255,255,.5); font-weight: 300; }
+.btn-cta-banner { display: inline-flex; align-items: center; gap: 8px; padding: .8rem 1.75rem; background: var(--paper); color: var(--ink); border: none; border-radius: 50px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none; transition: background .2s; white-space: nowrap; flex-shrink: 0; position: relative; }
+.btn-cta-banner:hover { background: var(--blue); color: #fff; }
+
+/* FOOTER */
+footer { border-top: 0.5px solid var(--border); padding: 1.5rem 3rem; display: flex; justify-content: space-between; align-items: center; background: var(--paper); }
+.f-logo { font-family: 'Instrument Serif', serif; font-size: 17px; color: var(--muted); text-decoration: none; display: flex; align-items: center; gap: 7px; }
+footer p { font-size: 12px; color: var(--muted); font-weight: 300; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media(max-width:768px){
+  nav { padding: 1rem 1.5rem; }
+  .hero { padding: 7rem 1.5rem 4rem; }
+  .hero-stats { gap: 1.5rem; flex-wrap: wrap; }
+  .section-wrap { padding: 4rem 1.5rem; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .cards-grid { grid-template-columns: 1fr 1fr; }
+  .charts-row { grid-template-columns: 1fr; }
+  .chart-card.wide { grid-column: span 1; }
+  .insights-row { grid-template-columns: 1fr 1fr; }
+  .cta-banner { flex-direction: column; }
+  footer { flex-direction: column; gap: .5rem; text-align: center; }
+  .email-form { flex-direction: column; }
+}
+@media(max-width:480px){
+  .kpi-grid, .cards-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav id="main-nav">
+  <a href="#" class="logo"><span class="logo-dot"></span>Smartflow</a>
+  <div class="nav-right">
+    <span class="nav-pill" id="nav-pill">Dashboard en vivo</span>
+    <div class="nav-user" id="nav-user">
+      <div class="nav-user-info">
+        <div class="nav-user-name" id="nav-user-name">—</div>
+        <div class="nav-user-role">Análisis de datos</div>
+      </div>
+      <div class="nav-avatar" id="nav-avatar">?</div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="eyebrow">Demo gratuita · Tus datos reales</div>
+    <h1>Tu negocio, visto<br>por primera vez<br><em>con claridad.</em></h1>
+    <p class="hero-sub">Sube tu CSV y en segundos tendrás un dashboard completo con KPIs, gráficos y un análisis estratégico generado por IA.</p>
+    <a href="#upload" class="hero-arrow">
+      <div class="arrow-circle">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      Subir mis datos
+    </a>
+    <div class="hero-stats">
+      <div><div class="stat-num">8 seg</div><div class="stat-lbl">de CSV a dashboard</div></div>
+      <div><div class="stat-num">100%</div><div class="stat-lbl">datos reales tuyos</div></div>
+      <div><div class="stat-num">0</div><div class="stat-lbl">configuración manual</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- UPLOAD -->
+<div class="section-wrap" id="upload">
+  <div class="section-tag reveal">Tus datos</div>
+  <div class="reveal">
+    <div class="ind-label">¿Cuál es tu industria?</div>
+    <div class="ind-pills">
+      <div class="ind-pill active" id="ind1" onclick="selectIndustry('Retail / Ventas','ind1')">Retail / Ventas</div>
+      <div class="ind-pill" id="ind2" onclick="selectIndustry('Inmobiliaria','ind2')">Inmobiliaria</div>
+      <div class="ind-pill" id="ind3" onclick="selectIndustry('Logística','ind3')">Logística</div>
+      <div class="ind-pill" id="ind4" onclick="selectIndustry('Finanzas','ind4')">Finanzas</div>
+      <div class="ind-pill" id="ind5" onclick="selectIndustry('Manufactura','ind5')">Manufactura</div>
+      <div class="ind-pill" id="ind6" onclick="selectIndustry('Servicios','ind6')">Servicios</div>
+    </div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <div class="upload-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2v12M7 6l4-4 4 4M3 16v2a1 1 0 001 1h14a1 1 0 001-1v-2" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="upload-title">Arrastra tu archivo CSV aquí</div>
+      <div class="upload-sub" style="margin-top:.35rem">o haz click para seleccionarlo · máx. 10MB</div>
+    </div>
+    <input type="file" id="file-input" accept=".csv" onchange="handleFileSelect(this)">
+    <div class="file-selected" id="file-selected">
+      <div style="width:36px;height:36px;border-radius:8px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M10 2H4a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V7l-5-5z" stroke="#16a34a" stroke-width="1.5"/><path d="M10 2v5h5" stroke="#16a34a" stroke-width="1.5"/></svg>
+      </div>
+      <div><div class="file-name" id="file-name">—</div><div class="file-size" id="file-size">—</div></div>
+      <span class="file-remove" onclick="removeFile()">✕ Quitar</span>
+    </div>
+    <hr class="q-divider">
+    <button class="process-btn" id="process-btn" onclick="processData()">Generar mi dashboard →</button>
+  </div>
+</div>
+
+<!-- PROCESSING -->
+<div class="proc-wrap" id="proc-wrap">
+  <div class="section-wrap">
+    <div class="section-tag">Procesando</div>
+    <div class="proc-steps" id="proc-steps">
+      <div class="steps-list">
+        <div class="p-step" id="ps1"><div class="p-step-icon"><span class="step-dot"></span></div><span>Leyendo estructura del CSV…</span></div>
+        <div class="p-step" id="ps2"><div class="p-step-icon"><span class="step-dot"></span></div><span>Identificando métricas clave…</span></div>
+        <div class="p-step" id="ps3"><div class="p-step-icon"><span class="step-dot"></span></div><span>Calculando KPIs…</span></div>
+        <div class="p-step" id="ps4"><div class="p-step-icon"><span class="step-dot"></span></div><span>Generando visualizaciones…</span></div>
+        <div class="p-step" id="ps5"><div class="p-step-icon"><span class="step-dot"></span></div><span>Preparando análisis estratégico…</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL GATE -->
+<div class="email-gate-wrap" id="email-gate-wrap">
+  <div class="section-wrap">
+
+    <!-- STEP 1: Enter email -->
+    <div class="email-gate" id="gate-step1">
+      <div class="email-gate-glow"></div>
+      <span class="email-gate-tag">Tu dashboard está listo</span>
+      <h3>Verifica tu email<br>para <em>acceder.</em></h3>
+      <p>Te enviaremos un link de acceso a tu email. Solo tarda 30 segundos — y así sabemos que eres tú.</p>
+      <div class="email-form">
+        <input type="email" class="email-input" id="email-input" placeholder="tu@empresa.com">
+        <button class="email-submit" id="email-submit-btn" onclick="sendMagicLink()">Enviar link →</button>
+      </div>
+      <div class="email-note">Sin spam · Link expira en 15 minutos</div>
+    </div>
+
+    <!-- STEP 2: Check inbox -->
+    <div class="email-gate" id="gate-step2" style="display:none">
+      <div class="email-gate-glow"></div>
+      <span class="email-gate-tag">Email enviado</span>
+      <h3>Revisa tu bandeja<br>de <em>entrada.</em></h3>
+      <p id="gate-step2-email">Te enviamos un link de acceso. Haz click en el botón del email para ver tu dashboard.</p>
+      <div style="position:relative;margin-bottom:.75rem">
+        <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(245,242,236,.08);border:0.5px solid rgba(245,242,236,.15);border-radius:50px;padding:.75rem 1.5rem">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#93aff5" stroke-width="1.4"/><path d="M2 7l7 4 7-4" stroke="#93aff5" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span style="font-size:14px;color:rgba(245,242,236,.7)">Revisa tu email y haz click en el link</span>
+        </div>
+      </div>
+      <div class="email-note">¿No llegó? <span style="color:rgba(245,242,236,.5);cursor:pointer;text-decoration:underline" onclick="resendLink()">Reenviar link</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- APP DASHBOARD -->
+<div class="app-shell" id="app-shell">
+
+  <div class="app-topbar">
+    <div class="app-topbar-left">
+      <div class="app-logo-mark">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13L8 3L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10H11.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="app-brand">Smartflow</div>
+        <div class="app-brand-sub" id="app-brand-sub">Dashboard de datos</div>
+      </div>
+    </div>
+    <div class="app-topbar-right">
+      <div class="app-notif">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a4 4 0 00-4 4v3l-1 1v1h10v-1l-1-1V6a4 4 0 00-4-4zM6.5 13a1.5 1.5 0 003 0" stroke="#71717a" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span class="app-notif-dot"></span>
+      </div>
+      <div class="app-user-pill">
+        <div><div class="app-user-name" id="app-user-name">—</div><div class="app-user-role" id="app-industry-label">Análisis</div></div>
+        <div class="app-avatar" id="app-avatar">?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div class="page-header-row">
+        <div>
+          <div class="page-title" id="page-title">Dashboard de datos</div>
+          <div class="page-sub" id="page-sub">—</div>
+        </div>
+        <div class="status-pills" id="status-pills"></div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <!-- CHARTS -->
+    <div class="charts-row" id="charts-row">
+      <div class="chart-card wide">
+        <div class="chart-card-title" id="chart1-title">Distribución principal</div>
+        <div class="chart-card-sub" id="chart1-sub">top valores por frecuencia</div>
+        <canvas id="chart-main"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title" id="chart2-title">Distribución secundaria</div>
+        <div class="chart-card-sub">composición del dataset</div>
+        <canvas id="chart-donut"></canvas>
+      </div>
+    </div>
+
+    <!-- INTELLIGENCE -->
+    <div class="intel-panel">
+      <div class="intel-panel-header">
+        <span class="intel-panel-badge">Inteligencia Estratégica</span>
+        <span class="intel-panel-title">Análisis ejecutivo · Generado por IA</span>
+      </div>
+      <div class="intel-panel-body">
+        <p class="intel-summary" id="intel-summary"><span style="color:#71717a;font-style:italic">Generando análisis…</span></p>
+        <div class="insights-row" id="insights-row" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- DATA CARDS -->
+    <div style="margin-bottom:1rem">
+      <div class="results-count" id="results-count">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="#71717a" stroke-width="1.3"/><path d="M5 7h4M5 5h4M5 9h2" stroke="#71717a" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span id="results-text">—</span>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="#71717a" stroke-width="1.3"/><path d="M9.5 9.5L12 12" stroke="#71717a" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <input type="text" id="search-input" placeholder="Buscar en los datos…" oninput="filterCards()">
+        </div>
+        <select class="filter-btn" id="filter-select" onchange="filterCards()">
+          <option value="">Todos los registros</option>
+        </select>
+      </div>
+    </div>
+    <div class="cards-grid" id="cards-grid"></div>
+
+    <!-- CTA BANNER -->
+    <div class="cta-banner">
+      <div class="cta-banner-glow"></div>
+      <div class="cta-banner-text">
+        <div class="cta-banner-title">Este es el 1% de lo que tu dashboard <em>podría mostrar.</em></div>
+        <div class="cta-banner-sub">Con todas tus fuentes conectadas en tiempo real — CRM, ERP, ventas, inventario — en 30 días.</div>
+      </div>
+      <a href="https://cal.com/smartflow.es/30min?user=smartflow.es" target="_blank" rel="noopener" class="btn-cta-banner">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 2v2M11 2v2M2 7h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Agendar sesión gratuita →
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <a href="#" class="f-logo"><span class="logo-dot" style="width:7px;height:7px"></span>Smartflow</a>
+  <p>© 2026 Smartflow. Todos los derechos reservados.</p>
+</footer>
+
+<script>
+let selectedIndustry = 'Retail / Ventas';
+let selectedFile = null;
+let parsedData = null;
+let allCards = [];
+let computedMetrics = null;
+let userEmail = '';
+
+function selectIndustry(name, id) {
+  selectedIndustry = name;
+  ['ind1','ind2','ind3','ind4','ind5','ind6'].forEach(i => document.getElementById(i).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag'); }
+function handleDragLeave() { document.getElementById('upload-zone').classList.remove('drag'); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('upload-zone').classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f&&f.name.endsWith('.csv')) setFile(f); }
+function handleFileSelect(input) { if(input.files[0]) setFile(input.files[0]); }
+function setFile(file) { selectedFile=file; document.getElementById('file-name').textContent=file.name; document.getElementById('file-size').textContent=(file.size/1024).toFixed(1)+' KB'; document.getElementById('file-selected').classList.add('show'); }
+function removeFile() { selectedFile=null; document.getElementById('file-selected').classList.remove('show'); document.getElementById('file-input').value=''; }
+
+function animateSteps(cb) {
+  const steps=['ps1','ps2','ps3','ps4','ps5'], delays=[0,700,1400,2200,3200];
+  steps.forEach((id,i) => {
+    setTimeout(()=>{
+      if(i>0){const p=document.getElementById(steps[i-1]);p.classList.remove('active');p.classList.add('done');p.querySelector('.p-step-icon').innerHTML='<span class="step-check">✓</span>';}
+      const el=document.getElementById(id);el.classList.add('active');el.querySelector('.p-step-icon').innerHTML='<span class="step-spinner"></span>';
+    }, delays[i]);
+  });
+  setTimeout(()=>{ const l=document.getElementById('ps5');l.classList.remove('active');l.classList.add('done');l.querySelector('.p-step-icon').innerHTML='<span class="step-check">✓</span>'; if(cb)cb(); }, 4200);
+}
+
+function computeMetrics(rows, headers) {
+  const m = { total:rows.length, headers };
+  const numCols={}, catCols={};
+  headers.forEach(h => {
+    const vals=rows.map(r=>r[h]).filter(v=>v!==undefined&&v!=='');
+    const nums=vals.map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+    if(nums.length>rows.length*0.4) numCols[h]={values:nums,sum:nums.reduce((a,b)=>a+b,0),avg:nums.reduce((a,b)=>a+b,0)/nums.length,min:Math.min(...nums),max:Math.max(...nums)};
+    else { const freq={}; vals.forEach(v=>{freq[v]=(freq[v]||0)+1;}); catCols[h]={freq,unique:Object.keys(freq).length}; }
+  });
+  m.numCols=numCols; m.catCols=catCols;
+  return m;
+}
+
+async function processData() {
+  if(!selectedFile){alert('Por favor sube un archivo CSV primero.');return;}
+  const btn=document.getElementById('process-btn'); btn.disabled=true; btn.textContent='Procesando…';
+  document.getElementById('proc-wrap').classList.add('show');
+  document.getElementById('proc-steps').classList.add('show');
+  setTimeout(()=>document.getElementById('proc-wrap').scrollIntoView({behavior:'smooth',block:'start'}),100);
+  Papa.parse(selectedFile,{header:true,skipEmptyLines:true,complete:function(results){
+    parsedData=results.data; computedMetrics=computeMetrics(parsedData,results.meta.fields);
+    animateSteps(()=>{ document.getElementById('proc-steps').classList.remove('show'); document.getElementById('proc-wrap').classList.remove('show'); document.getElementById('email-gate-wrap').classList.add('show'); setTimeout(()=>document.getElementById('email-gate-wrap').scrollIntoView({behavior:'smooth',block:'start'}),100); });
+  }});
+  btn.disabled=false; btn.textContent='Generar mi dashboard →';
+}
+
+const colorMap = {
+  in_stock:'green', available:'green', activo:'green', active:'green', aprobado:'green', approved:'green', completado:'green', completed:'green',
+  out_of_stock:'red', discontinued:'red', inactivo:'red', inactive:'red', rechazado:'red', rejected:'red', cancelado:'red',
+  backorder:'amber', pre_order:'amber', pendiente:'amber', pending:'amber', revision:'amber', 'en revisión':'amber',
+  limited_stock:'blue', borrador:'blue', draft:'blue', nuevo:'blue', new:'blue',
+};
+function getColor(val) { return colorMap[String(val).toLowerCase()] || 'gray'; }
+
+function renderCards(rows) {
+  const m = computedMetrics;
+  const headers = m.headers;
+  const nameCol = headers.find(h=>h.toLowerCase().includes('name')||h.toLowerCase().includes('nombre')||h.toLowerCase().includes('title')||h.toLowerCase().includes('titulo')) || headers[1] || headers[0];
+  const idCol = headers.find(h=>h.toLowerCase().includes('id')||h.toLowerCase().includes('index')||h.toLowerCase()===('id')) || headers[0];
+  const catCols = Object.keys(m.catCols);
+  const numCols = Object.keys(m.numCols);
+  const statusCol = catCols.find(k=>k.toLowerCase().includes('status')||k.toLowerCase().includes('availability')||k.toLowerCase().includes('estado')||k.toLowerCase().includes('disponib'));
+  const metaCols = headers.filter(h=>h!==nameCol&&h!==idCol&&h!==statusCol).slice(0,3);
+  const valCol = numCols[0];
+
+  allCards = rows.slice(0,24).map((r,i) => ({
+    id: r[idCol] ? String(r[idCol]).padStart(3,'0') : String(i+1).padStart(3,'0'),
+    name: r[nameCol] || '—',
+    status: r[statusCol] || null,
+    meta: metaCols.map(c=>({key:c, val:r[c]||'—'})),
+    value: valCol ? r[valCol] : null,
+    statusColor: r[statusCol] ? getColor(r[statusCol]) : 'gray'
+  }));
+
+  renderCardsGrid(allCards);
+
+  // Populate filter
+  if(statusCol) {
+    const sel = document.getElementById('filter-select');
+    const vals = [...new Set(rows.map(r=>r[statusCol]).filter(Boolean))];
+    vals.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  }
+  document.getElementById('results-text').textContent = `${rows.length} registros · mostrando ${Math.min(24,rows.length)}`;
+}
+
+function renderCardsGrid(cards) {
+  const grid = document.getElementById('cards-grid');
+  const colors = ['green','amber','blue','red','purple','gray'];
+  grid.innerHTML = cards.map((c,i) => `
+    <div class="data-card">
+      <div class="data-card-top ${c.statusColor}"></div>
+      <div class="data-card-body">
+        <div class="data-card-id">
+          <span>#${c.id}</span>
+          ${c.status ? `<span class="badge ${c.statusColor}">${c.status}</span>` : ''}
+        </div>
+        <div class="data-card-name">${c.name.length>50?c.name.slice(0,50)+'…':c.name}</div>
+        <div class="data-card-meta">
+          ${c.meta.map(m=>`<div class="data-card-meta-row"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="#71717a" stroke-width="1.2"/><path d="M6 4v2l1 1" stroke="#71717a" stroke-width="1.2" stroke-linecap="round"/></svg>${m.key}: ${String(m.val).length>25?String(m.val).slice(0,25)+'…':m.val}</div>`).join('')}
+        </div>
+        <div class="data-card-footer">
+          <span class="data-card-footer-left">${c.meta[0]?c.meta[0].key:'registro'}</span>
+          ${c.value ? `<span class="data-card-footer-right">${isNaN(c.value)?c.value:Number(c.value)>999?'$'+Number(c.value).toLocaleString():c.value}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterCards() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const f = document.getElementById('filter-select').value;
+  const filtered = allCards.filter(c => {
+    const matchQ = !q || c.name.toLowerCase().includes(q) || c.id.includes(q) || c.meta.some(m=>String(m.val).toLowerCase().includes(q));
+    const matchF = !f || c.status === f;
+    return matchQ && matchF;
+  });
+  renderCardsGrid(filtered);
+}
+
+function renderCharts() {
+  const m = computedMetrics;
+  const catKeys = Object.keys(m.catCols);
+  const numKeys = Object.keys(m.numCols);
+  const colors6 = ['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2'];
+  const alpha6 = colors6.map(c=>c+'33');
+
+  // Chart 1: Top category bar
+  const catKey = catKeys.find(k=>m.catCols[k].unique>=2&&m.catCols[k].unique<=30)||catKeys[0];
+  if(catKey) {
+    document.getElementById('chart1-title').textContent = catKey;
+    document.getElementById('chart1-sub').textContent = `top valores por frecuencia`;
+    const freq=m.catCols[catKey].freq, sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    new Chart(document.getElementById('chart-main').getContext('2d'),{type:'bar',data:{labels:sorted.map(([k])=>k.length>18?k.slice(0,18)+'…':k),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:colors6.map(c=>c+'22'),borderColor:colors6,borderWidth:1.5,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},color:'#71717a'}},y:{ticks:{font:{size:11},color:'#71717a'}}}}});
+  }
+
+  // Chart 2: Donut
+  const statusKey = catKeys.find(k=>k.toLowerCase().includes('status')||k.toLowerCase().includes('availability')||k.toLowerCase().includes('estado'))||catKeys[1]||catKeys[0];
+  if(statusKey) {
+    document.getElementById('chart2-title').textContent = statusKey;
+    const freq=m.catCols[statusKey].freq, entries=Object.entries(freq).slice(0,7);
+    new Chart(document.getElementById('chart-donut').getContext('2d'),{type:'doughnut',data:{labels:entries.map(([k])=>k),datasets:[{data:entries.map(([,v])=>v),backgroundColor:alpha6,borderColor:colors6,borderWidth:2}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',boxWidth:10}}}}});
+  }
+}
+
+function renderKPIs() {
+  const m = computedMetrics;
+  const numKeys = Object.keys(m.numCols);
+  const catKeys = Object.keys(m.catCols);
+  const kpis = [
+    {label:'Total registros', value:m.total.toLocaleString(), sub:'filas procesadas'},
+    {label:'Campos detectados', value:m.headers.length, sub:'columnas en el CSV'},
+  ];
+  if(numKeys[0]) { const k=numKeys[0]; kpis.push({label:k, value:m.numCols[k].sum>9999?'$'+Math.round(m.numCols[k].sum).toLocaleString():Math.round(m.numCols[k].sum).toLocaleString(), sub:'suma total'}); }
+  if(numKeys[0]) { const k=numKeys[0]; kpis.push({label:'Promedio '+k, value:m.numCols[k].avg>9999?'$'+Math.round(m.numCols[k].avg).toLocaleString():Math.round(m.numCols[k].avg).toLocaleString(), sub:'valor medio'}); }
+  else if(catKeys[0]) kpis.push({label:'Categorías únicas', value:m.catCols[catKeys[0]].unique, sub:'en '+catKeys[0]});
+  document.getElementById('kpi-grid').innerHTML = kpis.slice(0,4).map(k=>`<div class="kpi-card"><div class="kpi-card-label">${k.label}</div><div class="kpi-card-value">${k.value}</div><div class="kpi-card-sub">${k.sub}</div></div>`).join('');
+}
+
+function renderStatusPills() {
+  const m = computedMetrics;
+  const statusKey = Object.keys(m.catCols).find(k=>k.toLowerCase().includes('status')||k.toLowerCase().includes('availability')||k.toLowerCase().includes('estado'));
+  if(!statusKey) { document.getElementById('status-pills').innerHTML=`<span class="status-pill total">${m.total} Total</span>`; return; }
+  const freq = m.catCols[statusKey].freq;
+  let html = `<span class="status-pill total">${m.total} Total</span>`;
+  Object.entries(freq).slice(0,4).forEach(([k,v])=>{ html+=`<span class="status-pill ${getColor(k)}">${v} ${k}</span>`; });
+  document.getElementById('status-pills').innerHTML = html;
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('email-input').value.trim();
+  if(!email||!email.includes('@')||!email.includes('.')){
+    document.getElementById('email-input').style.borderColor='#dc2626';
+    return;
+  }
+  const btn = document.getElementById('email-submit-btn');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+
+  // Store CSV data in sessionStorage to restore after redirect
+  if(parsedData) {
+    try {
+      sessionStorage.setItem('sf_csv', JSON.stringify(parsedData));
+      sessionStorage.setItem('sf_headers', JSON.stringify(computedMetrics.headers));
+      sessionStorage.setItem('sf_industry', selectedIndustry);
+      sessionStorage.setItem('sf_filename', selectedFile?.name || 'datos.csv');
+    } catch(e) {}
+  }
+
+  try {
+    const res = await fetch('/api/send-magic-link', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, fuente:'Dashboard Demo', industry: selectedIndustry })
+    });
+    const data = await res.json();
+    if(!res.ok) {
+      alert(data.error || 'Error enviando el email. Intenta de nuevo.');
+      btn.disabled=false; btn.textContent='Enviar link →';
+      return;
+    }
+    // Show step 2
+    document.getElementById('gate-step1').style.display = 'none';
+    document.getElementById('gate-step2').style.display = 'block';
+    document.getElementById('gate-step2-email').textContent = `Te enviamos el link a ${email}. Haz click en el botón del email para ver tu dashboard.`;
+  } catch(e) {
+    alert('Error de conexión. Intenta de nuevo.');
+    btn.disabled=false; btn.textContent='Enviar link →';
+  }
+}
+
+function resendLink() {
+  document.getElementById('gate-step2').style.display = 'none';
+  document.getElementById('gate-step1').style.display = 'block';
+  document.getElementById('email-submit-btn').disabled = false;
+  document.getElementById('email-submit-btn').textContent = 'Enviar link →';
+}
+
+// Called when user returns from magic link click
+function unlockDashboardFromVerified(email, industry) {
+  userEmail = email;
+
+  // Try to restore CSV from sessionStorage
+  try {
+    const csvRaw = sessionStorage.getItem('sf_csv');
+    const headersRaw = sessionStorage.getItem('sf_headers');
+    const ind = sessionStorage.getItem('sf_industry') || industry;
+    const fname = sessionStorage.getItem('sf_filename') || 'datos.csv';
+    if(csvRaw && headersRaw) {
+      parsedData = JSON.parse(csvRaw);
+      const headers = JSON.parse(headersRaw);
+      computedMetrics = computeMetrics(parsedData, headers);
+      selectedIndustry = ind;
+    }
+  } catch(e) {}
+
+  const initials = email.split('@')[0].slice(0,2).toUpperCase();
+  document.getElementById('app-user-name').textContent = email.split('@')[0];
+  document.getElementById('app-avatar').textContent = initials;
+  document.getElementById('app-industry-label').textContent = selectedIndustry;
+
+  if(parsedData && computedMetrics) {
+    document.getElementById('app-brand-sub').textContent = selectedIndustry + ' · ' + parsedData.length + ' registros';
+    document.getElementById('page-title').textContent = 'Dashboard — ' + (sessionStorage.getItem('sf_filename') || 'Datos');
+    document.getElementById('page-sub').textContent = `${parsedData.length} registros · ${computedMetrics.headers.length} columnas · industria: ${selectedIndustry}`;
+    document.getElementById('email-gate-wrap').style.display = 'none';
+    document.getElementById('app-shell').classList.add('show');
+    renderKPIs(); renderStatusPills(); renderCharts(); renderCards(parsedData);
+    generateIntelligence();
+  } else {
+    // CSV not in session — show message to re-upload
+    document.getElementById('email-gate-wrap').style.display = 'none';
+    document.getElementById('upload').scrollIntoView({behavior:'smooth'});
+    alert('¡Email verificado! Por favor vuelve a subir tu CSV para generar el dashboard.');
+  }
+
+  // Clean URL
+  window.history.replaceState({}, '', '/');
+}
+
+// Check URL params on load (after magic link redirect)
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('verified') === 'true' && params.get('email')) {
+    const email = decodeURIComponent(params.get('email'));
+    const industry = decodeURIComponent(params.get('industry') || 'General');
+    unlockDashboardFromVerified(email, industry);
+  }
+});
+
+async function generateIntelligence() {
+  const m = computedMetrics;
+  const numSummary = Object.entries(m.numCols).map(([k,v])=>`${k}: total=${Math.round(v.sum).toLocaleString()}, avg=${Math.round(v.avg).toLocaleString()}, min=${Math.round(v.min)}, max=${Math.round(v.max)}`).join('\n');
+  const catSummary = Object.entries(m.catCols).slice(0,5).map(([k,v])=>`${k}: ${v.unique} valores únicos, top=${Object.entries(v.freq).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([kk,vv])=>`${kk}(${vv})`).join(', ')}`).join('\n');
+
+  const prompt = `Eres un socio senior de consultoría estratégica (nivel McKinsey/BCG/EY). Estás presentando el análisis inicial de los datos de un cliente en una reunión ejecutiva. Industria: ${selectedIndustry}.
+
+DATOS:
+- Registros: ${m.total}
+- Columnas: ${m.headers.join(', ')}
+NUMÉRICAS:
+${numSummary||'N/A'}
+CATEGÓRICAS:
+${catSummary||'N/A'}
+
+Responde SOLO con JSON válido (sin markdown):
+{
+  "resumen": "3-4 oraciones de análisis ejecutivo de alto nivel. Lenguaje de consultor senior — directo, específico, con los números reales. Sin frases genéricas. Menciona hallazgos concretos basados en los datos.",
+  "insights": [
+    {"icono":"📊","titulo":"Título del hallazgo","descripcion":"2 oraciones: insight específico + implicación estratégica concreta"},
+    {"icono":"⚡","titulo":"Título del hallazgo","descripcion":"2 oraciones: insight específico + implicación estratégica concreta"},
+    {"icono":"🎯","titulo":"Título del hallazgo","descripcion":"2 oraciones: insight específico + implicación estratégica concreta"},
+    {"icono":"💡","titulo":"Oportunidad de mayor impacto","descripcion":"2 oraciones: la acción de mayor ROI que podrían tomar hoy basada en estos datos"}
+  ]
+}`;
+
+  try {
+    const res = await fetch('/api/diagnose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    const data = await res.json();
+    let parsed = null;
+    try { parsed = JSON.parse((data.text||'').replace(/```json|```/g,'').trim()); } catch(e){}
+
+    const el = document.getElementById('intel-summary');
+    const text = parsed ? parsed.resumen : (data.text||'No se pudo generar el análisis.');
+    const boldText = text.replace(/(\$[\d,]+|\d[\d,.]*%?(?:\s\w+)?)/g,'<strong>$1</strong>');
+    el.innerHTML = boldText + '<span class="cursor"></span>';
+    setTimeout(()=>{ const c=el.querySelector('.cursor'); if(c)c.remove(); }, text.length*15+500);
+
+    if(parsed?.insights) {
+      const row = document.getElementById('insights-row');
+      row.innerHTML = parsed.insights.map(i=>`<div class="insight-tile"><div class="insight-tile-icon">${i.icono}</div><div class="insight-tile-title">${i.titulo}</div><div class="insight-tile-desc">${i.descripcion}</div></div>`).join('');
+      row.style.display = 'grid';
+    }
+  } catch(e) {
+    document.getElementById('intel-summary').textContent = 'No se pudo conectar con el análisis.';
+  }
+}
+
+const obs = new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
