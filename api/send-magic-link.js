@@ -30,7 +30,7 @@ module.exports = async function handler(req, res) {
       headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fields: {
-          Name: token,
+          Token: token,
           Email: email,
           Industry: industry || 'General',
           Fuente: fuente || 'Dashboard Demo',
