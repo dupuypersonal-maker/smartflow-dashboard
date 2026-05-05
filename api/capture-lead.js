@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
   const AIRTABLE_BASE = process.env.AIRTABLE_BASE;
   const RESEND_KEY = process.env.RESEND_KEY;
 
-  const today = new Date().toISOString().split('T')[0];
+ const today = new Date().toLocaleDateString('es-PA', { timeZone: 'America/Panama', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
   const fuenteFinal = fuente || 'Dashboard Demo — ' + (industry || 'General');
 
   // 1. Save to Lead Magnets CRM (source tracking)
