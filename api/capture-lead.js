@@ -54,7 +54,10 @@ module.exports = async function handler(req, res) {
   const AIRTABLE_BASE = process.env.AIRTABLE_BASE;
   const RESEND_KEY = process.env.RESEND_KEY;
 
-  // Save to Airtable
+  const today = new Date().toISOString().split('T')[0];
+  const fuenteFinal = fuente || 'Dashboard Demo — ' + (industry || 'General');
+
+  // 1. Save to Lead Magnets CRM (source tracking)
   try {
     await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/Table%201`, {
       method: 'POST',
@@ -62,12 +65,36 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         fields: {
           Email: email,
-          Fuente: fuente || 'Dashboard Demo — ' + (industry || 'General'),
+          Fuente: fuenteFinal,
+          Fecha: today,
         }
       })
     });
   } catch (e) {
-    console.log('Airtable error:', e.message);
+    console.log('Lead Magnets CRM error:', e.message);
+  }
+
+  // 2. Save to Smartflow CRM principal
+  const CRM_BASE = 'appfVdBeWxKnviswd';
+  const CRM_TABLE = 'tbl0uPz9tlIlRV3Rv';
+  try {
+    await fetch(`https://api.airtable.com/v0/${CRM_BASE}/${CRM_TABLE}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          Email: email,
+          Fuente: fuenteFinal,
+          Industria: industry || '',
+          'Lead Magnet': fuenteFinal,
+          Etapa: 'Nuevo',
+          Temperatura: '❄️ Frío',
+          'Fecha de Entrada': today,
+        }
+      })
+    });
+  } catch (e) {
+    console.log('Smartflow CRM error:', e.message);
   }
 
   // Send confirmation email via Resend
